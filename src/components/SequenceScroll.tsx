@@ -4,13 +4,14 @@ import { useScroll, useTransform, useMotionValueEvent, motion } from "framer-mot
 import { useEffect, useRef, useState } from "react";
 
 const frameCount = 80;
+const INITIAL_FRAMES = 15; // Load first 15 frames immediately
 
 export default function SequenceScroll() {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imagesRef = useRef<HTMLImageElement[]>([]); // Use ref for stable access
-    const [isLoading, setIsLoading] = useState(true); // Simplified loading state
-    const [loadProgress, setLoadProgress] = useState(0); // Progress tracking
+    const imagesRef = useRef<HTMLImageElement[]>(new Array(frameCount).fill(null));
+    const [loadProgress, setLoadProgress] = useState(0);
+    const [initialLoaded, setInitialLoaded] = useState(false);
 
     const { scrollYProgress } = useScroll({
         target: containerRef,
@@ -23,7 +24,7 @@ export default function SequenceScroll() {
         const canvas = canvasRef.current;
         const imgs = imagesRef.current;
 
-        if (!canvas || imgs.length === 0) return;
+        if (!canvas || !imgs[index]) return;
 
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
@@ -45,32 +46,52 @@ export default function SequenceScroll() {
 
     useEffect(() => {
         const loadImages = async () => {
-            // Create array of promises for parallel loading - MUCH FASTER!
-            const imagePromises = Array.from({ length: frameCount }, (_, i) => {
-                return new Promise<HTMLImageElement>((resolve) => {
+            // PHASE 1: Load first batch immediately for instant display
+            const initialPromises = Array.from({ length: INITIAL_FRAMES }, (_, i) => {
+                return new Promise<void>((resolve) => {
                     const img = new Image();
                     const paddedIndex = i.toString().padStart(3, "0");
                     img.src = `/sequence/Begin_with_an_202601220117_7xziv_${paddedIndex}.jpg`;
 
                     img.onload = () => {
+                        imagesRef.current[i] = img;
                         setLoadProgress((prev) => Math.min(prev + (100 / frameCount), 100));
-                        resolve(img);
+                        resolve();
                     };
                     img.onerror = () => {
                         setLoadProgress((prev) => Math.min(prev + (100 / frameCount), 100));
-                        resolve(img); // Resolve anyway to not block
+                        resolve();
                     };
                 });
             });
 
-            // Load all images in PARALLEL instead of one-by-one
-            const loadedImages = await Promise.all(imagePromises);
-
-            imagesRef.current = loadedImages;
-            setIsLoading(false);
-
-            // Render first frame immediately after loading
+            // Wait for initial frames to load
+            await Promise.all(initialPromises);
+            setInitialLoaded(true);
             renderFrame(0);
+
+            // PHASE 2: Load remaining frames in background (non-blocking)
+            const remainingPromises = Array.from({ length: frameCount - INITIAL_FRAMES }, (_, i) => {
+                const frameIndex = i + INITIAL_FRAMES;
+                return new Promise<void>((resolve) => {
+                    const img = new Image();
+                    const paddedIndex = frameIndex.toString().padStart(3, "0");
+                    img.src = `/sequence/Begin_with_an_202601220117_7xziv_${paddedIndex}.jpg`;
+
+                    img.onload = () => {
+                        imagesRef.current[frameIndex] = img;
+                        setLoadProgress((prev) => Math.min(prev + (100 / frameCount), 100));
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        setLoadProgress((prev) => Math.min(prev + (100 / frameCount), 100));
+                        resolve();
+                    };
+                });
+            });
+
+            // Load rest without blocking
+            await Promise.all(remainingPromises);
         };
 
         loadImages();
@@ -88,30 +109,37 @@ export default function SequenceScroll() {
         };
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
-    }, [currentIndex]); // Removed images dependency since we use ref
+    }, [currentIndex]);
 
     return (
         <div ref={containerRef} className="h-[400vh] relative z-0 bg-background">
             <div className="sticky top-0 h-screen w-full overflow-hidden">
                 <canvas ref={canvasRef} className="block w-full h-full" />
 
-                {/* Loading Overlay with Progress */}
-                {isLoading && (
+                {/* Subtle background loading indicator - only if not fully loaded */}
+                {loadProgress < 100 && initialLoaded && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
+                        <div className="bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full">
+                            <p className="text-white text-xs opacity-70">Loading {Math.round(loadProgress)}%</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Initial loading overlay - only for first frames */}
+                {!initialLoaded && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black text-white z-50">
-                        <p className="text-2xl font-bold mb-4">Loading Sequence...</p>
+                        <p className="text-2xl font-bold mb-4">Loading Experience...</p>
                         <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
                             <motion.div
                                 className="h-full bg-[#F40009]"
                                 initial={{ width: 0 }}
-                                animate={{ width: `${loadProgress}%` }}
+                                animate={{ width: `${(loadProgress / INITIAL_FRAMES) * 100}%` }}
                                 transition={{ duration: 0.3 }}
                             />
                         </div>
-                        <p className="text-sm mt-2 opacity-70">{Math.round(loadProgress)}%</p>
                     </div>
                 )}
 
-                {/* Text Overlays - Positioned absolutely based on scroll would be better handled by separate transforms or opacities controlled here */}
                 <OverlayText scrollYProgress={scrollYProgress} />
             </div>
         </div>
