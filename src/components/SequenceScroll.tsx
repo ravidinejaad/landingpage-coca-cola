@@ -4,7 +4,7 @@ import { useScroll, useTransform, useMotionValueEvent, motion } from "framer-mot
 import { useEffect, useRef, useState } from "react";
 
 const frameCount = 80;
-const INITIAL_FRAMES = 15; // Load first 15 frames immediately
+const INITIAL_FRAMES = 5; // Load first 15 frames immediately
 
 export default function SequenceScroll() {
     const containerRef = useRef<HTMLDivElement>(null);
