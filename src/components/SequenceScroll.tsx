@@ -1,0 +1,140 @@
+"use client";
+
+import { useScroll, useTransform, useMotionValueEvent, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+
+const frameCount = 80;
+
+export default function SequenceScroll() {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imagesRef = useRef<HTMLImageElement[]>([]); // Use ref for stable access
+    const [isLoading, setIsLoading] = useState(true); // Simplified loading state
+
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end end"],
+    });
+
+    const currentIndex = useTransform(scrollYProgress, [0, 1], [0, frameCount - 1]);
+
+    const renderFrame = (index: number) => {
+        const canvas = canvasRef.current;
+        const imgs = imagesRef.current;
+
+        if (!canvas || imgs.length === 0) return;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const img = imgs[index];
+
+        if (img && img.complete && img.naturalHeight !== 0) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Cover fit calculation
+            const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+            const x = (canvas.width / 2) - (img.width / 2) * scale;
+            const y = (canvas.height / 2) - (img.height / 2) * scale;
+
+            ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        }
+    };
+
+    useEffect(() => {
+        const loadImages = async () => {
+            const loadedImages: HTMLImageElement[] = [];
+            // Files are named 000 to 079
+            for (let i = 0; i < frameCount; i++) {
+                const img = new Image();
+                const paddedIndex = i.toString().padStart(3, "0");
+                img.src = `/sequence/Begin_with_an_202601220117_7xziv_${paddedIndex}.jpg`;
+                await new Promise((resolve) => {
+                    img.onload = () => resolve(null);
+                    img.onerror = () => resolve(null);
+                });
+                loadedImages.push(img);
+            }
+
+            imagesRef.current = loadedImages;
+            setIsLoading(false);
+
+            // Render first frame immediately after loading
+            renderFrame(0);
+        };
+
+        loadImages();
+    }, []);
+
+    useMotionValueEvent(currentIndex, "change", (latest) => {
+        const index = Math.min(Math.floor(latest), frameCount - 1);
+        renderFrame(index);
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            const index = Math.min(Math.floor(currentIndex.get()), frameCount - 1);
+            renderFrame(index);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, [currentIndex]); // Removed images dependency since we use ref
+
+    return (
+        <div ref={containerRef} className="h-[400vh] relative z-0 bg-background">
+            <div className="sticky top-0 h-screen w-full overflow-hidden">
+                <canvas ref={canvasRef} className="block w-full h-full" />
+
+                {/* Loading Overlay */}
+                {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black text-white z-50">
+                        <p className="text-2xl font-bold">Loading Sequence...</p>
+                    </div>
+                )}
+
+                {/* Text Overlays - Positioned absolutely based on scroll would be better handled by separate transforms or opacities controlled here */}
+                <OverlayText scrollYProgress={scrollYProgress} />
+            </div>
+        </div>
+    );
+}
+
+function OverlayText({ scrollYProgress }: { scrollYProgress: any }) {
+    const opacity1 = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+    const opacity2 = useTransform(scrollYProgress, [0.25, 0.35, 0.45], [0, 1, 0]);
+    const opacity3 = useTransform(scrollYProgress, [0.55, 0.65, 0.75], [0, 1, 0]);
+    const opacity4 = useTransform(scrollYProgress, [0.85, 0.95], [0, 1]);
+
+    const y1 = useTransform(scrollYProgress, [0, 0.2], [0, -50]);
+    const x2 = useTransform(scrollYProgress, [0.25, 0.45], [-50, 0]);
+    const x3 = useTransform(scrollYProgress, [0.55, 0.75], [50, 0]);
+
+    return (
+        <div className="absolute inset-0 pointer-events-none flex flex-col justify-center items-center text-white mix-blend-difference">
+            {/* 0% - Title */}
+            <motion.div style={{ opacity: opacity1, y: y1 }} className="absolute text-center">
+                <h1 className="text-6xl md:text-8xl font-bold tracking-tighter text-[#F40009]">COCA-COLA</h1>
+                <p className="text-xl md:text-2xl mt-4">Real Magic</p>
+            </motion.div>
+
+            {/* 30% - Slogan Left */}
+            <motion.div style={{ opacity: opacity2, x: x2 }} className="absolute left-10 md:left-20 max-w-md">
+                <h2 className="text-4xl md:text-5xl font-bold leading-tight">Taste the Feeling</h2>
+            </motion.div>
+
+            {/* 60% - Slogan Right */}
+            <motion.div style={{ opacity: opacity3, x: x3 }} className="absolute right-10 md:right-20 max-w-md text-right">
+                <h2 className="text-4xl md:text-5xl font-bold leading-tight">Universal Joy</h2>
+            </motion.div>
+
+            {/* 90% - CTA */}
+            <motion.div style={{ opacity: opacity4 }} className="absolute bottom-20 text-center pointer-events-auto">
+                <h2 className="text-4xl md:text-6xl font-bold mb-8">Share a Coke?</h2>
+                <button className="bg-tuku-accent text-white px-8 py-4 rounded-full text-xl font-bold hover:scale-105 transition-transform">
+                    Grab One
+                </button>
+            </motion.div>
+        </div>
+    )
+}
