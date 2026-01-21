@@ -10,6 +10,7 @@ export default function SequenceScroll() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imagesRef = useRef<HTMLImageElement[]>([]); // Use ref for stable access
     const [isLoading, setIsLoading] = useState(true); // Simplified loading state
+    const [loadProgress, setLoadProgress] = useState(0); // Progress tracking
 
     const { scrollYProgress } = useScroll({
         target: containerRef,
@@ -44,18 +45,26 @@ export default function SequenceScroll() {
 
     useEffect(() => {
         const loadImages = async () => {
-            const loadedImages: HTMLImageElement[] = [];
-            // Files are named 000 to 079
-            for (let i = 0; i < frameCount; i++) {
-                const img = new Image();
-                const paddedIndex = i.toString().padStart(3, "0");
-                img.src = `/sequence/Begin_with_an_202601220117_7xziv_${paddedIndex}.jpg`;
-                await new Promise((resolve) => {
-                    img.onload = () => resolve(null);
-                    img.onerror = () => resolve(null);
+            // Create array of promises for parallel loading - MUCH FASTER!
+            const imagePromises = Array.from({ length: frameCount }, (_, i) => {
+                return new Promise<HTMLImageElement>((resolve) => {
+                    const img = new Image();
+                    const paddedIndex = i.toString().padStart(3, "0");
+                    img.src = `/sequence/Begin_with_an_202601220117_7xziv_${paddedIndex}.jpg`;
+
+                    img.onload = () => {
+                        setLoadProgress((prev) => Math.min(prev + (100 / frameCount), 100));
+                        resolve(img);
+                    };
+                    img.onerror = () => {
+                        setLoadProgress((prev) => Math.min(prev + (100 / frameCount), 100));
+                        resolve(img); // Resolve anyway to not block
+                    };
                 });
-                loadedImages.push(img);
-            }
+            });
+
+            // Load all images in PARALLEL instead of one-by-one
+            const loadedImages = await Promise.all(imagePromises);
 
             imagesRef.current = loadedImages;
             setIsLoading(false);
@@ -86,10 +95,19 @@ export default function SequenceScroll() {
             <div className="sticky top-0 h-screen w-full overflow-hidden">
                 <canvas ref={canvasRef} className="block w-full h-full" />
 
-                {/* Loading Overlay */}
+                {/* Loading Overlay with Progress */}
                 {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black text-white z-50">
-                        <p className="text-2xl font-bold">Loading Sequence...</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black text-white z-50">
+                        <p className="text-2xl font-bold mb-4">Loading Sequence...</p>
+                        <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-[#F40009]"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${loadProgress}%` }}
+                                transition={{ duration: 0.3 }}
+                            />
+                        </div>
+                        <p className="text-sm mt-2 opacity-70">{Math.round(loadProgress)}%</p>
                     </div>
                 )}
 
