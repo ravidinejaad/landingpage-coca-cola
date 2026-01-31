@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coca-Cola Landing Page 🍹
 
-## Getting Started
+A modern, responsive landing page inspired by Coca-Cola branding, built with **Next.js**.  
+This project is created for **portfolio and educational purposes only**, showcasing frontend development, animation, and layout techniques.
 
-First, run the development server:
+---
 
-```bash
+## ✨ Features
+
+- ⚡ Built with **Next.js (App Router)**
+- 🎨 Responsive & modern UI
+- 🖼️ Image sequence / scroll-based animation
+- 💨 Smooth transitions & micro-interactions
+- 📱 Mobile-first design
+- 🚀 Optimized for performance
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** Next.js  
+- **Language:** TypeScript / JavaScript  
+- **Styling:** CSS / Tailwind CSS (if used)  
+- **Animation:** CSS / Scroll-based animation  
+- **Deployment:** Vercel  
+
+---
+## 📁 Project Structure
+├── app/ # Next.js App Router
+│ ├── page.tsx # Main landing page
+│ └── layout.tsx # Root layout
+│
+├── components/ # Reusable components
+│ ├── Hero.tsx
+│ ├── SequenceScroll.tsx
+│ └── Navbar.tsx
+│
+├── public/
+│ ├── images/
+│ └── sequence/ # Image sequence assets
+│
+├── styles/
+│ └── globals.css
+│
+├── README.md
+└── package.json
+
+## 🌐 Live Demo
+
+🚀 Deployed on **Vercel**  
+🔗 https://web-cocacola.vercel.app/
+
+## 🚀 Getting Started
+
+
+### 1️⃣ Clone Repository
+git clone https://github.com/ravidinejaad/landingpage-coca-cola.git
+cd coca-cola-landing-page
+
+### 2️⃣ Install Dependencies
+npm install
+# or
+yarn install
+
+### 3️⃣ Run Development Server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Open http://localhost:3000 in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🌍 Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This project is deployed using Vercel.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Deploy Steps
 
-## Learn More
+Push code to GitHub
 
-To learn more about Next.js, take a look at the following resources:
+Import repository to Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Select main branch as production
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deploy 🚀
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Every push to main will automatically update production.
